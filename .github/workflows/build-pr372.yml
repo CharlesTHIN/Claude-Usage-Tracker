@@ -1,0 +1,39 @@
+name: Build PR 372 (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build/pr-372]
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26.0.1
+        run: sudo xcode-select -s /Applications/Xcode_26.0.1.app/Contents/Developer
+
+      - name: Build Release (no code signing)
+        run: |
+          xcodebuild build \
+            -project "Claude Usage.xcodeproj" \
+            -scheme "Claude Usage" \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Zip app bundle
+        run: |
+          mkdir -p artifacts
+          ditto -c -k --keepParent "build/Build/Products/Release/Claude Usage.app" "artifacts/Claude-Usage-pr372.zip"
+          shasum -a 256 artifacts/Claude-Usage-pr372.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Claude-Usage-pr372
+          path: artifacts/
+          retention-days: 7
